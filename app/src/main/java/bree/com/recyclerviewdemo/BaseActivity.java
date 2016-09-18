@@ -30,6 +30,10 @@ public abstract class BaseActivity extends Activity {
         setRecycler();
         mRecyclerView.setAdapter(adapter = new HomeAdapter());
         changeData();
+        
+        //添加头和脚
+        setHeaderView(mRecyclerView);
+        setFooterView(mRecyclerView);
 
 
     }
@@ -44,6 +48,17 @@ public abstract class BaseActivity extends Activity {
         }
     }
 
+    public void setHeaderView(RecyclerView headerView) {
+        View header = LayoutInflater.from(this).inflate(R.layout.header, headerView, false);
+        adapter.setHeaderView(header);
+    }
+
+    public void setFooterView(RecyclerView footerView) {
+        View footer = LayoutInflater.from(this).inflate(R.layout.footer, footerView, false);
+        adapter.setFooterView(footer);
+    }
+
+
     public interface OnItemClickLitener {
         void onItemClick(View view, int position);
 
@@ -51,6 +66,30 @@ public abstract class BaseActivity extends Activity {
     }
 
     class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.MyViewHolder> {
+        public static final int TYPE_HEADER = 0;  //说明是带有Header的
+        public static final int TYPE_FOOTER = 1;  //说明是带有Footer的
+        public static final int TYPE_NORMAL = 2;  //说明是不带有header和footer的
+
+        public View getHeaderView() {
+            return mHeaderView;
+        }
+
+        public void setHeaderView(View mHeaderView) {
+            this.mHeaderView = mHeaderView;
+            notifyItemInserted(0);
+        }
+
+        public View getFooterView() {
+            return mFooterView;
+        }
+
+        public void setFooterView(View mFooterView) {
+            this.mFooterView = mFooterView;
+            notifyItemInserted(getItemCount()-1);
+        }
+
+        private View mHeaderView;
+        private View mFooterView;
 
         private OnItemClickLitener mOnItemClickLitener;
 
@@ -58,22 +97,36 @@ public abstract class BaseActivity extends Activity {
             this.mOnItemClickLitener = mOnItemClickLitener;
         }
 
+        @Override
+        public int getItemViewType(int position) {
+            if (mHeaderView == null && mFooterView == null){
+                return TYPE_NORMAL;
+            }
+            if (position == 0){
+                //第一个item应该加载Header
+                return TYPE_HEADER;
+            }
+            if (position == getItemCount()-1){
+                //最后一个,应该加载Footer
+                return TYPE_FOOTER;
+            }
+            return TYPE_NORMAL;
+        }
 
         @Override
         public HomeAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            return new MyViewHolder(LayoutInflater.from(BaseActivity.this).inflate(R.layout.item, parent, false));
+            if(mHeaderView != null && viewType == TYPE_HEADER) {
+                return new MyViewHolder(mHeaderView);
+            }
+            if(mFooterView != null && viewType == TYPE_FOOTER){
+                return new MyViewHolder(mFooterView);
+            }
+            View layout = LayoutInflater.from(parent.getContext()).inflate(R.layout.item, parent, false);
+            return new MyViewHolder(layout);
         }
 
         @Override
         public void onBindViewHolder(final HomeAdapter.MyViewHolder holder, int position) {
-            if (type.equals("3")) {
-                FrameLayout.LayoutParams linearParams = (FrameLayout.LayoutParams) holder.tv.getLayoutParams(); //取控件textView当前的布局参数 linearParams.height = 20;// 控件的高强制设成20
-
-                linearParams.height = (int) (Math.random() * 300);// 控件的宽强制设成30
-
-                holder.tv.setLayoutParams(linearParams); //使设置好的布局参数应用到控件
-            }
-            holder.tv.setText(mDatas.get(position));
 
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -91,11 +144,40 @@ public abstract class BaseActivity extends Activity {
                     return false;
                 }
             });
+
+            if(getItemViewType(position) == TYPE_NORMAL){
+                if(holder instanceof MyViewHolder) {
+                    //这里加载数据的时候要注意，是从position-1开始，因为position==0已经被header占用了
+                    ((MyViewHolder) holder).tv.setText(mDatas.get(position-1));
+                    if (type.equals("3")) {
+                        FrameLayout.LayoutParams linearParams = (FrameLayout.LayoutParams) holder.tv.getLayoutParams(); //取控件textView当前的布局参数 linearParams.height = 20;// 控件的高强制设成20
+
+                        linearParams.height = (int) (Math.random() * 300);// 控件的宽强制设成30
+
+                        holder.tv.setLayoutParams(linearParams); //使设置好的布局参数应用到控件
+                    }
+                    return;
+                }
+                return;
+            }else if(getItemViewType(position) == TYPE_HEADER){
+                return;
+            }else{
+                return;
+            }
+
         }
 
         @Override
         public int getItemCount() {
-            return mDatas.size();
+            if(mHeaderView == null && mFooterView == null){
+                return mDatas.size();
+            }else if(mHeaderView == null && mFooterView != null){
+                return mDatas.size() + 1;
+            }else if (mHeaderView != null && mFooterView == null){
+                return mDatas.size() + 1;
+            }else {
+                return mDatas.size() + 2;
+            }
         }
 
         class MyViewHolder extends RecyclerView.ViewHolder {
@@ -103,6 +185,12 @@ public abstract class BaseActivity extends Activity {
 
             public MyViewHolder(View itemView) {
                 super(itemView);
+                if (itemView == mHeaderView){
+                    return;
+                }
+                if (itemView == mFooterView){
+                    return;
+                }
                 tv = (TextView) itemView.findViewById(R.id.id_num);
             }
         }
