@@ -141,6 +141,7 @@ public abstract class BaseActivity extends Activity {
                 public boolean onLongClick(View v) {
                     int pos = holder.getLayoutPosition();
                     mOnItemClickLitener.onItemLongClick(holder.itemView, pos);
+
                     return false;
                 }
             });
